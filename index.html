@@ -999,16 +999,22 @@
 
             // --- JIKA API KEY ADA, PANGGIL GEMINI API ASLI ---
 
-            // 1. Kumpulkan semua sumber referensi aktif (Simulasi RAG)
-            const activeSources = AI_SOURCES.filter(s => s.active).map(s => s.title + (s.type==='text' ? ': '+document.getElementById('ai-source-content')?.value : '')).join(", ");
+            // 1. Kumpulkan semua sumber referensi aktif (Simulasi RAG) dari database tersimpan
+            const activeSources = AI_SOURCES.filter(s => s.active).map(s => {
+                let text = s.title;
+                if (s.type === 'text' && s.content) text += ':\n' + s.content;
+                return text;
+            }).join("\n\n---\n\n");
             
             // 2. Buat System Prompt (Gabungan Karakter & Pengetahuan)
             const systemPrompt = `Kamu adalah ${AI_PERSONA.name}, tutor AI untuk siswa SD. Gaya bahasamu: ${AI_PERSONA.style}. 
 Instruksi tambahan dari guru: ${AI_PERSONA.prompt}. 
-Gunakan referensi berikut sebagai dasar ingatanmu: [${activeSources}]. 
-Jika siswa bertanya di luar topik cahaya dan materi referensi, arahkan kembali ke pelajaran. 
-Jawablah dengan bahasa Indonesia yang ramah anak.
-Pertanyaan siswa: ${message}`;
+Gunakan referensi materi berikut sebagai acuan utamamu untuk menjawab: 
+[REFERENSI MULAI]
+${activeSources}
+[REFERENSI SELESAI]
+
+Jika siswa bertanya di luar topik cahaya atau di luar referensi di atas, arahkan dengan sopan kembali ke pelajaran. Jawablah dengan ringkas dan bahasa Indonesia yang ramah anak SD.`;
 
             // Tampilkan animasi loading
             const loadingId = 'loading-' + Date.now();
@@ -1452,10 +1458,11 @@ Pertanyaan siswa: ${message}`;
 
         function addAISource() {
             let title = '';
+            let content = '';
             
             if (currentSourceTab === 'text') {
                 title = document.getElementById('ai-source-title-text').value;
-                const content = document.getElementById('ai-source-content').value;
+                content = document.getElementById('ai-source-content').value;
                 if (!title || !content) return showToast("Judul dan isi materi harus diisi!", "info");
             } else if (currentSourceTab === 'link') {
                 title = document.getElementById('ai-source-title-link').value;
@@ -1471,6 +1478,7 @@ Pertanyaan siswa: ${message}`;
                 id: Date.now(),
                 type: currentSourceTab,
                 title: title,
+                content: content,
                 active: true
             });
             
