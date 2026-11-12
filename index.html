@@ -708,9 +708,11 @@
 
             if (saved) {
                 state = JSON.parse(saved);
-                if (state.role === 'siswa') goHome();
-                else if (state.role === 'guru') login('guru');
-                else if (state.role === 'ortu') login('ortu');
+                if (state.role) {
+                    // Panggil fungsi login ulang dengan role yang tersimpan
+                    // Ini akan memastikan Navbar dan Tombol Keluar dimunculkan kembali
+                    login(state.role); 
+                }
             }
             
             // Cek inisialisasi Supabase (Opsional: Memberikan feedback ke console)
