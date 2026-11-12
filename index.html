@@ -142,15 +142,17 @@
                 </button>
                 <h1 class="text-xl font-extrabold text-[#1cb0f6] tracking-wide"><i class="fa-solid fa-lightbulb text-yellow-400"></i> CAHAYA</h1>
             </div>
-            <div id="nav-stats" class="flex items-center gap-4 font-bold text-sm hidden">
-                <div class="flex items-center gap-1 text-orange-500">
-                    <i class="fa-solid fa-fire"></i> <span id="nav-streak">1</span>
+            <div class="flex items-center gap-4">
+                <div id="nav-stats" class="flex items-center gap-4 font-bold text-sm hidden">
+                    <div class="flex items-center gap-1 text-orange-500">
+                        <i class="fa-solid fa-fire"></i> <span id="nav-streak">1</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-yellow-500">
+                        <i class="fa-solid fa-gem"></i> <span id="nav-xp">0</span>
+                    </div>
                 </div>
-                <div class="flex items-center gap-1 text-yellow-500">
-                    <i class="fa-solid fa-gem"></i> <span id="nav-xp">0</span>
-                </div>
-                <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition-colors">
-                    <i class="fa-solid fa-power-off"></i>
+                <button onclick="logout()" class="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors border border-red-200 shadow-sm" title="Keluar dari Aplikasi">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span class="hidden sm:inline">Keluar</span>
                 </button>
             </div>
         </div>
@@ -819,7 +821,7 @@
 
         // ================= PARENT DASHBOARD =================
         function renderParentDashboard() {
-            document.getElementById('btn-back').classList.remove('hidden');
+            document.getElementById('btn-back').classList.add('hidden'); // Sembunyikan tombol back untuk Ortu
             document.getElementById('ortu-xp').innerText = state.xp;
             
             const MODULES = getModules();
@@ -1190,7 +1192,7 @@ Pertanyaan siswa: ${message}`;
         ];
 
         function renderTeacherDashboard() {
-            document.getElementById('btn-back').classList.remove('hidden');
+            document.getElementById('btn-back').classList.add('hidden'); // Sembunyikan tombol back untuk Guru
             const tbody = document.getElementById('table-siswa');
             
             tbody.innerHTML = '';
