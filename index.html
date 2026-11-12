@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAHAYA AI - Keajaiban Cahaya</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js untuk Grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF & AutoTable untuk Ekspor PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Nunito (Duolingo-style font) -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f7f9f9; /* Light gray background */
+            color: #3c3c3c;
+        }
+
+        /* 3D Button Style (Duolingo effect) */
+        .duo-btn {
+            border-bottom-width: 4px;
+            transition: transform 0.1s, border-bottom-width 0.1s, box-shadow 0.1s;
+        }
+        .duo-btn:active:not(:disabled) {
+            border-bottom-width: 0px;
+            transform: translateY(4px);
+        }
+        .duo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-bottom-width: 4px;
+        }
+
+        /* Color Variants for 3D Buttons */
+        .btn-blue { @apply bg-[#1cb0f6] border-[#1899d6] text-white hover:bg-[#14a1e3]; }
+        .btn-green { @apply bg-[#58cc02] border-[#58a700] text-white hover:bg-[#46a302]; }
+        .btn-red { @apply bg-[#ff4b4b] border-[#ea2b2b] text-white hover:bg-[#f33a3a]; }
+        .btn-white { @apply bg-white border-[#e5e5e5] text-slate-700 hover:bg-gray-50; }
+        
+        .view:not(.active) { display: none !important; }
+        .view.active { animation: fadeIn 0.3s ease-in-out; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-col;
+            gap: 10px;
+            width: 90%;
+            max-width: 400px;
+            pointer-events: none;
+        }
+        .toast {
+            animation: slideUpPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes slideUpPop {
+            0% { transform: translateY(100%) scale(0.9); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes slideOutDown {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(100%); opacity: 0; }
+        }
+
+        /* Animations for Game */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+        .shake { animation: shake 0.4s; }
+
+        /* Duolingo Feedback Drawer */
+        .feedback-drawer {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+        }
+        .feedback-drawer.show {
+            transform: translateY(0);
+        }
+
+        /* Tooltip Bouncing */
+        @keyframes float-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .animate-float { animation: float-bounce 2s infinite ease-in-out; }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;
+            display: none; justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease-out; }
+
+        /* Mascot/Icon Animation */
+        @keyframes bounce-subtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-bounce-subtle { animation: bounce-subtle 2s infinite; }
+        
+        .card-disabled { filter: grayscale(100%); opacity: 0.7; pointer-events: none; }
+    </style>
+</head>
+<body class="min-h-screen overflow-x-hidden flex flex-col">
+
+    <!-- Navbar -->
+    <nav id="navbar" class="bg-white border-b-2 border-gray-200 sticky top-0 z-40 hidden">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <button id="btn-back" onclick="goHome()" class="hidden text-gray-400 hover:text-gray-600 text-xl font-bold">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <h1 class="text-xl font-extrabold text-[#1cb0f6] tracking-wide"><i class="fa-solid fa-lightbulb text-yellow-400"></i> CAHAYA</h1>
+            </div>
+            <div id="nav-stats" class="flex items-center gap-4 font-bold text-sm hidden">
+                <div class="flex items-center gap-1 text-orange-500">
+                    <i class="fa-solid fa-fire"></i> <span id="nav-streak">1</span>
+                </div>
+                <div class="flex items-center gap-1 text-yellow-500">
+                    <i class="fa-solid fa-gem"></i> <span id="nav-xp">0</span>
+                </div>
+                <button onclick="logout()" class="text-gray-400 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Completion Modal -->
+    <div id="completion-modal" class="modal-overlay">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-[90%] mx-auto text-center transform transition-transform scale-95 flex flex-col items-center border-4 border-gray-200">
+            <div class="text-6xl mb-4 animate-bounce-subtle">🎉</div>
+            <h2 class="text-2xl font-black text-gray-800 mb-2">Pencapaian Hebat!</h2>
+            <p id="modal-msg" class="font-bold text-gray-500 mb-6">Kamu telah menyelesaikan modul ini.</p>
+            <div class="flex items-center justify-center gap-2 text-[#ffc800] font-black text-2xl mb-8 bg-yellow-50 px-6 py-3 rounded-2xl border-2 border-yellow-200">
+                <i class="fa-solid fa-bolt"></i> <span id="modal-xp">+10 XP</span>
+            </div>
+            <button onclick="closeModal()" class="duo-btn btn-green w-full py-3 rounded-2xl font-extrabold text-lg uppercase tracking-wide">
+                Lanjutkan
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <main class="flex-grow w-full max-w-4xl mx-auto p-4 md:p-6 pb-20">
+
+        <!-- ================= VIEW: LOGIN ================= -->
+        <div id="view-login" class="view active flex flex-col items-center justify-center min-h-[80vh]">
+            <div class="w-full max-w-sm bg-white rounded-3xl p-8 border-2 border-gray-200 shadow-sm text-center">
+                <div class="text-6xl mb-4 animate-bounce-subtle"><i class="fa-solid fa-lightbulb text-yellow-400 drop-shadow-md"></i></div>
+                <h1 class="text-3xl font-black text-gray-800 mb-2 tracking-tight">CAHAYA AI</h1>
+                <p class="text-gray-500 font-bold mb-8">Cerdas, Aktif, Holistik, Adaptif, & Yakin</p>
+                
+                <div class="space-y-4">
+                    <button onclick="login('siswa')" class="duo-btn btn-green w-full py-3 rounded-2xl font-extrabold text-lg flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-user"></i> Mulai Belajar (Siswa)
+                    </button>
+                    <button onclick="login('ortu')" class="duo-btn btn-white w-full py-3 rounded-2xl font-extrabold text-lg flex justify-center items-center gap-2 border-purple-200 hover:bg-purple-50 text-purple-700">
+                        <i class="fa-solid fa-users"></i> Portal Orang Tua
+                    </button>
+                    <button onclick="login('guru')" class="duo-btn btn-white w-full py-3 rounded-2xl font-extrabold text-lg flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-chalkboard-user"></i> Masuk Admin (Guru)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: DASHBOARD SISWA ================= -->
+        <div id="view-dashboard-siswa" class="view">
+            <!-- Header Card -->
+            <div class="bg-[#1cb0f6] rounded-3xl p-6 text-white border-b-4 border-[#1899d6] mb-8 relative overflow-hidden hidden sm:block">
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-black mb-1">Halo, Petualang! 👋</h2>
+                        <p class="font-semibold text-blue-100">Mari temukan keajaiban cahaya hari ini.</p>
+                    </div>
+                    <div class="text-5xl animate-bounce-subtle hidden sm:block">🚀</div>
+                </div>
+            </div>
+
+            <div id="learning-path" class="flex flex-col items-center py-4 relative gap-4">
+                <!-- Cards will be generated by JS -->
+            </div>
+        </div>
+
+        <!-- ================= VIEW: DASHBOARD ORTU ================= -->
+        <div id="view-dashboard-ortu" class="view max-w-2xl mx-auto">
+            <div class="bg-purple-600 rounded-3xl p-6 text-white border-b-4 border-purple-800 mb-6">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl">👨‍👩‍👧</div>
+                    <div>
+                        <h2 class="text-2xl font-black mb-1">Portal Orang Tua</h2>
+                        <p class="font-semibold text-purple-200">Pantau perkembangan belajar Ananda hari ini.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div class="flex flex-col gap-4">
+                    <div class="bg-white border-2 border-gray-200 rounded-2xl p-4 text-center">
+                        <div class="text-gray-500 font-bold mb-1">Total XP</div>
+                        <div id="ortu-xp" class="text-3xl font-black text-yellow-500">0</div>
+                    </div>
+                    <div class="bg-white border-2 border-gray-200 rounded-2xl p-4 text-center">
+                        <div class="text-gray-500 font-bold mb-1">Progres Belajar</div>
+                        <div id="ortu-progress" class="text-3xl font-black text-[#1cb0f6]">0%</div>
+                    </div>
+                </div>
+                
+                <!-- Grafik Progres -->
+                <div class="bg-white border-2 border-gray-200 rounded-2xl p-4 flex flex-col items-center justify-center">
+                    <div class="text-gray-500 font-bold mb-2 text-center">Visualisasi Progres</div>
+                    <div class="relative h-32 w-full flex justify-center">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-gray-200 rounded-3xl p-6 mb-6">
+                <h3 class="font-black text-gray-800 mb-4"><i class="fa-solid fa-comment-dots text-purple-500"></i> Catatan & Feedback</h3>
+                <div id="feedback-list" class="bg-purple-50 border-2 border-purple-100 rounded-2xl p-4 font-semibold text-purple-900 text-sm space-y-3">
+                    <p><i class="fa-solid fa-robot mr-2 text-blue-500"></i> <b>Analisis Tutor AI:</b> Ananda sangat tertarik pada materi "Pembiasan Cahaya" dan aktif bertanya tentang fenomena pelangi.</p>
+                    <p><i class="fa-solid fa-chalkboard-user mr-2 text-gray-700"></i> <b>Pesan Guru:</b> Pertahankan semangat belajarnya! Mohon bimbingan di rumah untuk menyelesaikan Jurnal Refleksi Al-Qur'an.</p>
+                </div>
+                
+                <!-- Form Feedback Manual Ortu -->
+                <div class="mt-6 border-t-2 border-gray-100 pt-4">
+                    <h4 class="font-black text-gray-700 text-sm mb-2">Beri Umpan Balik / Semangat:</h4>
+                    <textarea id="ortu-feedback-input" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-purple-400 text-sm mb-2" rows="2" placeholder="Ketik pesan penyemangat untuk anak atau balasan untuk guru..."></textarea>
+                    <button onclick="submitParentFeedback()" class="duo-btn btn-white text-purple-600 border-purple-200 hover:bg-purple-50 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> Kirim Catatan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: PRETEST / POSTTEST ================= -->
+        <div id="view-test" class="view max-w-2xl mx-auto">
+            <h2 id="test-title" class="text-2xl font-black text-gray-800 mb-6 text-center">Tes Kemampuan</h2>
+            <div id="test-container" class="bg-white rounded-3xl p-6 md:p-8 border-2 border-gray-200">
+                <!-- Form test -->
+            </div>
+        </div>
+
+        <!-- ================= VIEW: AI TUTOR ================= -->
+        <div id="view-ai-tutor" class="view max-w-2xl mx-auto h-[75dvh] md:h-[70vh] flex flex-col">
+            <div class="bg-white border-2 border-gray-200 rounded-t-3xl p-4 flex items-center gap-3 border-b-0">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-2xl"><i class="fa-solid fa-robot text-[#1cb0f6]"></i></div>
+                <div>
+                    <h3 class="font-black text-gray-800">Tutor AI</h3>
+                    <p class="text-xs font-bold text-green-500">Online</p>
+                </div>
+            </div>
+            <div id="chat-box" class="flex-grow bg-white border-x-2 border-gray-200 p-4 overflow-y-auto flex flex-col gap-4">
+                <div class="flex gap-3">
+                    <div class="bg-gray-100 p-3 rounded-2xl rounded-tl-none max-w-[85%] font-semibold text-gray-700">
+                        Halo! Aku Tutor AI. Ada yang ingin kamu tanyakan tentang sifat-sifat cahaya?
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white border-2 border-gray-200 border-t-0 rounded-b-3xl p-4">
+                <div class="flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Tanya sesuatu di sini..." class="flex-grow bg-gray-100 border-2 border-gray-200 rounded-2xl px-4 py-2 font-semibold focus:outline-none focus:border-[#1cb0f6] focus:bg-white transition-colors">
+                    <button onclick="sendChat()" class="duo-btn btn-blue w-12 rounded-2xl flex justify-center items-center"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: SCIENCE LAB ================= -->
+        <div id="view-science-lab" class="view">
+            <div class="bg-white rounded-3xl p-5 sm:p-6 border-2 border-gray-200 mb-6">
+                <h2 class="text-2xl font-black text-gray-800 mb-2"><i class="fa-solid fa-flask text-purple-500"></i> Lab Virtual: Pembiasan Cahaya</h2>
+                <p class="font-semibold text-gray-600 mb-6">Amati gambar pensil yang dimasukkan ke dalam gelas berisi air.</p>
+                
+                <div class="bg-blue-50 rounded-2xl p-4 mb-6 flex justify-center">
+                    <div class="w-40 h-40 bg-blue-100 rounded-full border-4 border-white shadow-inner relative flex items-center justify-center overflow-hidden">
+                        <div class="absolute bottom-0 w-full h-1/2 bg-blue-200/50 backdrop-blur-sm z-10 border-t border-blue-300"></div>
+                        <div class="w-2 h-32 bg-yellow-400 absolute rotate-12 transform -translate-y-4 rounded-full z-0"></div>
+                        <div class="w-2 h-16 bg-yellow-500 absolute rotate-[25deg] transform translate-y-8 translate-x-4 rounded-full z-20"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="font-black text-gray-700 block mb-2">Apa yang kamu amati?</label>
+                        <textarea id="lab-observation" class="w-full bg-gray-100 border-2 border-gray-200 rounded-2xl p-3 font-semibold focus:outline-none focus:border-purple-400" rows="2" placeholder="Contoh: Pensil terlihat patah..."></textarea>
+                    </div>
+                    <div>
+                        <label class="font-black text-gray-700 block mb-2">Kesimpulanmu:</label>
+                        <textarea id="lab-conclusion" class="w-full bg-gray-100 border-2 border-gray-200 rounded-2xl p-3 font-semibold focus:outline-none focus:border-purple-400" rows="2" placeholder="Cahaya dapat..."></textarea>
+                    </div>
+                    <button onclick="saveLab()" class="duo-btn btn-green w-full py-3 rounded-2xl font-extrabold text-lg mt-2">
+                        Simpan Eksperimen
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: MISSION GAME ================= -->
+        <div id="view-mission" class="view max-w-xl mx-auto h-[100dvh] md:h-[90vh] flex flex-col pb-4 md:pb-0">
+            <div class="flex items-center gap-4 mb-6 px-4 pt-4 md:px-2 md:pt-4">
+                <button onclick="goHome()" class="text-gray-400 hover:text-gray-600 text-2xl font-bold"><i class="fa-solid fa-xmark"></i></button>
+                <div class="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
+                    <div id="mission-progress" class="bg-[#58cc02] h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="text-yellow-500 font-black flex items-center gap-1">
+                    <i class="fa-solid fa-gem"></i> <span id="mission-xp-reward">10</span>
+                </div>
+            </div>
+            
+            <div class="flex-grow flex flex-col px-4 md:px-2">
+                <h2 class="text-2xl font-black text-gray-800 mb-8 leading-tight">Pilih terjemahan yang benar, eh maksudnya... <br><span id="mission-question" class="text-xl text-gray-700"></span></h2>
+                
+                <div id="mission-options" class="space-y-3 flex-grow">
+                    <!-- Options JS -->
+                </div>
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <div class="border-t-2 border-gray-200 p-4 bg-white sticky bottom-0 z-40">
+                <button id="btn-mission-check" onclick="submitMissionAnswer()" disabled class="duo-btn btn-green w-full py-4 rounded-2xl font-extrabold text-xl uppercase tracking-wider">
+                    Periksa
+                </button>
+            </div>
+            
+            <!-- Feedback Drawer -->
+            <div id="mission-feedback" class="feedback-drawer p-6 border-t-4">
+                <div class="max-w-xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 w-full">
+                        <div id="feedback-icon" class="w-16 h-16 rounded-full bg-white flex items-center justify-center text-3xl shadow-sm"></div>
+                        <div>
+                            <h3 id="feedback-title" class="text-2xl font-black mb-1">Luar Biasa!</h3>
+                            <p id="feedback-desc" class="font-bold opacity-80">Jawabanmu tepat.</p>
+                        </div>
+                    </div>
+                    <button id="btn-mission-next" onclick="nextMission()" class="duo-btn w-full sm:w-auto py-3 px-8 rounded-2xl font-extrabold text-lg uppercase tracking-wider">
+                        Lanjutkan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: QURAN CONNECT ================= -->
+        <div id="view-quran" class="view max-w-2xl mx-auto">
+            <div class="bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-6 mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <i class="fa-solid fa-book-quran text-3xl text-emerald-600"></i>
+                    <h2 class="text-2xl font-black text-gray-800">Quran Connect</h2>
+                </div>
+                
+                <div class="bg-white p-5 rounded-2xl border-2 border-emerald-100 mb-4 text-center">
+                    <p class="text-2xl font-bold text-gray-800 mb-4 font-serif leading-loose" dir="rtl">
+                        هُوَ الَّذِي جَعَلَ الشَّمْسَ ضِيَاءً وَالْقَمَرَ نُورًا
+                    </p>
+                    <p class="font-bold text-gray-700">"Dialah yang menjadikan matahari bersinar dan bulan bercahaya..."</p>
+                    <p class="text-sm font-bold text-emerald-600 mt-2">(QS. Yunus: 5)</p>
+                </div>
+                
+                <div class="bg-white p-4 rounded-2xl border-2 border-gray-200">
+                    <label class="font-black text-gray-700 block mb-2"><i class="fa-solid fa-pen"></i> Jurnal Refleksi Spiritual:</label>
+                    <textarea id="quran-reflection" class="w-full bg-gray-100 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-emerald-400" rows="3" placeholder="Apa hikmah yang kamu dapat dari ayat di atas terkait sifat cahaya?"></textarea>
+                    <button onclick="saveQuran()" class="duo-btn btn-green w-full py-3 rounded-xl font-extrabold mt-3">Simpan Jurnal</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: LITERACY STUDIO ================= -->
+        <div id="view-literacy" class="view">
+            <div class="bg-white border-2 border-gray-200 rounded-3xl p-6">
+                <h2 class="text-2xl font-black text-gray-800 mb-2"><i class="fa-solid fa-feather text-orange-500"></i> Studio Literasi</h2>
+                <p class="font-bold text-gray-600 mb-4">Tuliskan laporan singkat tentang eksperimenmu hari ini.</p>
+                
+                <textarea id="literacy-content" class="w-full bg-gray-50 border-2 border-gray-200 rounded-2xl p-4 font-semibold min-h-[200px] focus:outline-none focus:border-orange-400 mb-4" placeholder="Judul: Eksperimen Sifat Cahaya&#10;Tujuan: ...&#10;Hasil: ..."></textarea>
+                
+                <div class="flex gap-3">
+                    <button onclick="reviewLiteracy()" class="duo-btn btn-blue flex-grow py-3 rounded-2xl font-extrabold flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-magic"></i> Cek EYD (AI)
+                    </button>
+                    <button onclick="saveLiteracy()" class="duo-btn btn-green flex-grow py-3 rounded-2xl font-extrabold flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-save"></i> Simpan
+                    </button>
+                </div>
+                
+                <div id="literacy-feedback" class="mt-4 hidden p-4 bg-blue-50 border-2 border-blue-200 rounded-2xl font-semibold text-blue-800">
+                    <!-- AI Feedback -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= VIEW: DASHBOARD GURU ================= -->
+        <div id="view-dashboard-guru" class="view max-w-4xl mx-auto">
+            <div class="bg-slate-800 rounded-3xl p-6 text-white border-b-4 border-slate-900 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-black mb-1"><i class="fa-solid fa-chalkboard-user"></i> Ruang Guru (Admin)</h2>
+                    <p class="font-semibold text-slate-300">Pantau siswa & kelola sumber kecerdasan AI.</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Panel Data Siswa -->
+                <div class="bg-white border-2 border-gray-200 rounded-3xl p-4 flex flex-col">
+                    <div class="flex justify-between items-center mb-4 px-2">
+                        <h3 class="font-black text-gray-800"><i class="fa-solid fa-chart-line text-blue-500"></i> Ringkasan Kelas</h3>
+                        <button onclick="downloadClassReportPDF()" class="duo-btn btn-blue text-xs py-2 px-4 rounded-xl font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> Unduh Laporan Kelas
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <div class="bg-blue-50 rounded-xl p-3 text-center">
+                            <div class="text-blue-500 font-bold text-sm">Total Siswa</div>
+                            <div class="text-2xl font-black text-blue-700">32</div>
+                        </div>
+                        <div class="bg-green-50 rounded-xl p-3 text-center">
+                            <div class="text-green-500 font-bold text-sm">Rata Rata Nilai</div>
+                            <div class="text-2xl font-black text-green-700">85</div>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto flex-grow">
+                        <table class="w-full text-left font-semibold text-sm">
+                            <thead>
+                                <tr class="text-gray-400 border-b-2 border-gray-100">
+                                    <th class="p-2">Nama</th>
+                                    <th class="p-2">Progres</th>
+                                    <th class="p-2">XP</th>
+                                    <th class="p-2 text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-siswa">
+                                <!-- Injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Panel Pengaturan Tutor AI -->
+                <div class="bg-white border-2 border-gray-200 rounded-3xl p-5">
+                    <h3 class="font-black text-gray-800 mb-2"><i class="fa-solid fa-user-astronaut text-indigo-500"></i> Pengaturan Tutor AI</h3>
+                    <p class="text-xs font-bold text-gray-500 mb-4">Kustomisasi karakter dan instruksi Tutor AI.</p>
+                    <div class="space-y-3">
+                        <input type="text" id="ai-persona-name" placeholder="Nama AI (Misal: Tutor Cahaya)" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-indigo-400 text-sm">
+                        <select id="ai-persona-style" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-indigo-400 text-sm text-gray-600">
+                            <option value="ramah">Gaya Bahasa: Ramah & Menyenangkan (SD)</option>
+                            <option value="formal">Gaya Bahasa: Formal & Akademis</option>
+                            <option value="sokratis">Gaya Bahasa: Sokratis (Suka Bertanya)</option>
+                        </select>
+                        <textarea id="ai-persona-prompt" placeholder="Instruksi Khusus (Contoh: Selalu berikan contoh dari kehidupan sehari-hari...)" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-indigo-400 text-sm min-h-[80px]"></textarea>
+                        <button onclick="saveAIPersona()" class="duo-btn btn-white text-indigo-500 border-indigo-200 hover:bg-indigo-50 w-full py-2 rounded-xl font-bold flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan Pengaturan AI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Panel Kelola Materi AI -->
+                <div class="bg-white border-2 border-gray-200 rounded-3xl p-5 md:col-span-2">
+                    <h3 class="font-black text-gray-800 mb-2"><i class="fa-solid fa-database text-orange-500"></i> Manajemen Sumber Materi (RAG)</h3>
+                    <p class="text-xs font-bold text-gray-500 mb-4">Tambahkan materi (Teks, Tautan, atau File) agar AI menjawab sesuai referensi.</p>
+                    
+                    <div class="flex gap-2 mb-3">
+                        <button onclick="switchSourceTab('text')" id="tab-src-text" class="flex-1 bg-orange-100 text-orange-700 font-bold py-2 rounded-lg border-2 border-orange-200 transition-colors">Teks Manual</button>
+                        <button onclick="switchSourceTab('link')" id="tab-src-link" class="flex-1 bg-gray-50 text-gray-500 font-bold py-2 rounded-lg border-2 border-gray-200 transition-colors">Tautan Web</button>
+                        <button onclick="switchSourceTab('file')" id="tab-src-file" class="flex-1 bg-gray-50 text-gray-500 font-bold py-2 rounded-lg border-2 border-gray-200 transition-colors">Unggah File</button>
+                    </div>
+
+                    <div id="src-input-text" class="space-y-3 mb-4">
+                        <input type="text" id="ai-source-title-text" placeholder="Judul Referensi Teks" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-orange-400 text-sm">
+                        <textarea id="ai-source-content" placeholder="Masukkan teks materi/kurikulum di sini..." class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-orange-400 text-sm min-h-[100px]"></textarea>
+                    </div>
+
+                    <div id="src-input-link" class="space-y-3 mb-4 hidden">
+                        <input type="text" id="ai-source-title-link" placeholder="Judul Tautan" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-orange-400 text-sm">
+                        <input type="url" id="ai-source-url" placeholder="https://..." class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-orange-400 text-sm">
+                    </div>
+
+                    <div id="src-input-file" class="space-y-3 mb-4 hidden">
+                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-gray-400 mb-2"></i>
+                            <p class="font-bold text-gray-600 text-sm mb-2">Pilih Buku Paket PDF/Word (Maks. 10MB)</p>
+                            <input type="file" id="ai-source-file" accept=".pdf,.doc,.docx" class="text-sm font-semibold file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100">
+                        </div>
+                    </div>
+
+                    <button onclick="addAISource()" class="duo-btn btn-white text-orange-500 border-orange-200 hover:bg-orange-50 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Simpan ke Database AI
+                    </button>
+
+                    <h4 class="font-black text-gray-700 text-sm mb-2 border-t-2 border-gray-100 pt-4 mt-4">Sumber Terdaftar:</h4>
+                    <ul id="ai-sources-list" class="space-y-2 text-sm font-semibold max-h-48 overflow-y-auto pr-2">
+                        <!-- Injected via JS -->
+                    </ul>
+                </div>
+                
+                <!-- Panel Kelola Soal Misi -->
+                <div class="bg-white border-2 border-gray-200 rounded-3xl p-5 md:col-span-2">
+                    <h3 class="font-black text-gray-800 mb-2"><i class="fa-solid fa-gamepad text-red-500"></i> Manajemen Misi & Soal</h3>
+                    <p class="text-xs font-bold text-gray-500 mb-4">Tambahkan soal baru untuk Mission Game siswa.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="space-y-3">
+                            <textarea id="new-q-text" placeholder="Pertanyaan baru..." class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm" rows="2"></textarea>
+                            <div class="flex gap-2">
+                                <input type="text" id="new-q-opt0" placeholder="Opsi A" class="w-1/2 bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm">
+                                <input type="text" id="new-q-opt1" placeholder="Opsi B" class="w-1/2 bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm">
+                            </div>
+                            <div class="flex gap-2">
+                                <input type="text" id="new-q-opt2" placeholder="Opsi C" class="w-1/2 bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm">
+                                <input type="text" id="new-q-opt3" placeholder="Opsi D" class="w-1/2 bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm">
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <select id="new-q-ans" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm text-gray-600">
+                                <option value="0">Jawaban Benar: Opsi A</option>
+                                <option value="1">Jawaban Benar: Opsi B</option>
+                                <option value="2">Jawaban Benar: Opsi C</option>
+                                <option value="3">Jawaban Benar: Opsi D</option>
+                            </select>
+                            <input type="number" id="new-q-xp" placeholder="XP Reward (misal: 20)" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-semibold focus:outline-none focus:border-red-400 text-sm">
+                            <button onclick="addMission()" class="duo-btn btn-white text-red-500 border-red-200 hover:bg-red-50 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-plus"></i> Tambah Soal
+                            </button>
+                        </div>
+                    </div>
+                    <h4 class="font-black text-gray-700 text-sm mb-2 border-t-2 border-gray-100 pt-4">Daftar Soal Saat Ini:</h4>
+                    <ul id="mission-list-admin" class="space-y-2 text-sm font-semibold max-h-48 overflow-y-auto pr-2">
+                        <!-- Injected via JS -->
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // ================= STATE & DATA =================
+        const MODULES = [
+            { id: 'pretest', name: 'Pretest', icon: 'fa-file-signature', color: 'text-gray-500', bg: 'bg-white', view: 'view-test', required: [] },
+            { id: 'tutor', name: 'Tutor AI', icon: 'fa-robot', color: 'text-blue-500', bg: 'bg-white', view: 'view-ai-tutor', required: ['pretest'] },
+            { id: 'lab', name: 'Lab Eksperimen', icon: 'fa-flask', color: 'text-purple-500', bg: 'bg-white', view: 'view-science-lab', required: ['pretest'] },
+            { id: 'mission', name: 'Misi Permainan', icon: 'fa-gamepad', color: 'text-red-500', bg: 'bg-white', view: 'view-mission', required: ['lab'] },
+            { id: 'quran', name: 'Quran Connect', icon: 'fa-book-quran', color: 'text-emerald-500', bg: 'bg-white', view: 'view-quran', required: ['mission'] },
+            { id: 'literacy', name: 'Studio Literasi', icon: 'fa-feather', color: 'text-orange-500', bg: 'bg-white', view: 'view-literacy', required: ['mission'] },
+            { id: 'posttest', name: 'Posttest', icon: 'fa-medal', color: 'text-yellow-500', bg: 'bg-white', view: 'view-test', required: ['literacy', 'quran'] }
+        ];
+
+        let MISSIONS_DATA = [
+            { q: "Benda yang dapat ditembus cahaya disebut benda...", options: ["Gelap", "Bening", "Keras", "Padat"], answer: 1, xp: 15 },
+            { q: "Pensil di dalam gelas berisi air terlihat patah karena peristiwa...", options: ["Pemantulan", "Penguraian", "Pembiasan", "Perambatan lurus"], answer: 2, xp: 20 },
+            { q: "Pelangi terjadi karena cahaya matahari mengalami...", options: ["Penguraian", "Pembiasan", "Keduanya benar", "Salah semua"], answer: 2, xp: 25 }
+        ];
+
+        let state = {
+            role: null,
+            completed: [],
+            xp: 0,
+            missionLevel: 0
+        };
+        
+        let missionState = {
+            selectedOption: null,
+            isAnswerChecked: false
+        };
+        
+        let AI_SOURCES = [
+            { id: 1, type: 'text', title: 'Buku Paket IPAS Kelas 5 K-Merdeka', active: true }
+        ];
+        
+        let AI_PERSONA = {
+            name: 'Tutor AI',
+            style: 'ramah',
+            prompt: ''
+        };
+
+        let currentSourceTab = 'text';
+
+        let chartInstance = null; // Variabel untuk menyimpan instance grafik
+
+        // ================= CORE FUNCTIONS =================
+        function init() {
+            const saved = localStorage.getItem('cahaya_state');
+            const savedMissions = localStorage.getItem('cahaya_missions');
+            const savedSources = localStorage.getItem('cahaya_ai_sources');
+            const savedPersona = localStorage.getItem('cahaya_ai_persona');
+            
+            if (savedMissions) {
+                MISSIONS_DATA = JSON.parse(savedMissions);
+            }
+            if (savedSources) {
+                AI_SOURCES = JSON.parse(savedSources);
+            }
+            if (savedPersona) {
+                AI_PERSONA = JSON.parse(savedPersona);
+            }
+
+            if (saved) {
+                state = JSON.parse(saved);
+                if (state.role === 'siswa') goHome();
+                else if (state.role === 'guru') login('guru');
+                else if (state.role === 'ortu') login('ortu');
+            }
+        }
+
+        function saveState() {
+            localStorage.setItem('cahaya_state', JSON.stringify(state));
+            updateUI();
+        }
+
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = type === 'success' ? 'bg-[#58cc02] border-[#58a700]' : type === 'xp' ? 'bg-[#ffc800] border-[#e5b400]' : 'bg-[#1cb0f6] border-[#1899d6]';
+            let icon = type === 'success' ? 'fa-check' : type === 'xp' ? 'fa-bolt' : 'fa-info';
+            let textColor = type === 'xp' ? 'text-yellow-900' : 'text-white';
+
+            toast.className = `toast flex items-center gap-3 p-4 rounded-2xl border-b-4 ${bg} ${textColor} shadow-lg font-bold w-full`;
+            toast.innerHTML = `<div class="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center text-lg"><i class="fa-solid ${icon}"></i></div> <div class="flex-grow">${msg}</div>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOutDown 0.3s forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        function login(role) {
+            state.role = role;
+            saveState();
+            
+            document.getElementById('navbar').classList.remove('hidden');
+            
+            if (role === 'siswa') {
+                document.getElementById('nav-stats').classList.remove('hidden');
+                goHome();
+                showToast("Selamat datang kembali!", "success");
+            } else if (role === 'guru') {
+                document.getElementById('nav-stats').classList.add('hidden');
+                renderTeacherDashboard();
+                switchView('view-dashboard-guru');
+            } else if (role === 'ortu') {
+                document.getElementById('nav-stats').classList.add('hidden');
+                renderParentDashboard();
+                switchView('view-dashboard-ortu');
+            }
+        }
+
+        function logout() {
+            state = { role: null, completed: [], xp: 0, missionLevel: 0 };
+            saveState();
+            document.getElementById('navbar').classList.add('hidden');
+            switchView('view-login');
+        }
+
+        function goHome() {
+            document.getElementById('btn-back').classList.add('hidden');
+            renderPath();
+            updateUI();
+            switchView('view-dashboard-siswa');
+        }
+
+        function updateUI() {
+            document.getElementById('nav-xp').innerText = state.xp;
+            
+            const progress = Math.round((state.completed.length / MODULES.length) * 100);
+            const bar = document.getElementById('progress-bar');
+            const text = document.getElementById('progress-text');
+            if(bar) bar.style.width = progress + '%';
+            if(text) text.innerText = progress + '%';
+        }
+
+        function unlock(id, xpGain = 0) {
+            if (!state.completed.includes(id)) {
+                state.completed.push(id);
+                if(xpGain > 0) {
+                    state.xp += xpGain;
+                }
+                saveState();
+                showModal(id, xpGain);
+            } else {
+                goHome();
+            }
+        }
+
+        function showModal(id, xpGain) {
+            const mod = MODULES.find(m => m.id === id);
+            document.getElementById('modal-msg').innerText = `Kamu telah menyelesaikan ${mod ? mod.name : 'modul'}!`;
+            document.getElementById('modal-xp').innerText = `+${xpGain} XP`;
+            document.getElementById('completion-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('completion-modal').classList.remove('active');
+            goHome();
+        }
+
+        // ================= PARENT DASHBOARD =================
+        function renderParentDashboard() {
+            document.getElementById('btn-back').classList.remove('hidden');
+            document.getElementById('ortu-xp').innerText = state.xp;
+            
+            const progress = Math.round((state.completed.length / MODULES.length) * 100);
+            document.getElementById('ortu-progress').innerText = progress + '%';
+            
+            // Render Grafik Chart.js
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            // Hapus grafik lama jika ada sebelum menggambar ulang
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const completedCount = state.completed.length;
+            const remainingCount = MODULES.length - completedCount;
+            
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Selesai', 'Belum Selesai'],
+                    datasets: [{
+                        data: [completedCount, remainingCount],
+                        backgroundColor: ['#58cc02', '#e5e5e5'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + ' Modul';
+                                }
+                            }
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+        
+        function submitParentFeedback() {
+            const input = document.getElementById('ortu-feedback-input');
+            const val = input.value.trim();
+            if (!val) { 
+                showToast('Umpan balik tidak boleh kosong!', 'info'); 
+                return; 
+            }
+            
+            const container = document.getElementById('feedback-list');
+            const newFeedback = document.createElement('p');
+            newFeedback.className = "animate-[fadeIn_0.3s_ease-out]";
+            newFeedback.innerHTML = `<i class="fa-solid fa-user-check mr-2 text-green-600"></i> <b>Orang Tua:</b> ${val}`;
+            
+            container.appendChild(newFeedback);
+            input.value = ''; // Bersihkan input
+            showToast('Umpan balik berhasil dikirim!', 'success');
+        }
+
+        // ================= SISWA DASHBOARD =================
+        function renderPath() {
+            const container = document.getElementById('learning-path');
+            container.innerHTML = '';
+            
+            // Pola kelok-kelok (winding pattern) responsif untuk HP dan PC
+            const offsets = ['ml-0', 'ml-8 sm:ml-16', 'ml-16 sm:ml-32', 'ml-8 sm:ml-16', 'ml-0', '-ml-8 sm:-ml-16', '-ml-16 sm:-ml-32', '-ml-8 sm:-ml-16'];
+            
+            MODULES.forEach((m, index) => {
+                const isCompleted = state.completed.includes(m.id);
+                const isLocked = !m.required.every(req => state.completed.includes(req));
+                const isActive = !isCompleted && !isLocked;
+                
+                const offsetClass = offsets[index % offsets.length];
+                
+                let btnStyle = isActive ? 'btn-green' : (isCompleted ? 'bg-yellow-400 border-yellow-500 text-white' : 'bg-gray-200 border-gray-300 text-gray-400');
+                
+                // Tooltip melayang jika aktif
+                let tooltip = '';
+                if (isActive) {
+                    tooltip = `
+                        <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white border-2 border-gray-200 rounded-xl px-4 py-2 font-black text-gray-700 whitespace-nowrap animate-float z-20 shadow-sm">
+                            MULAI
+                            <div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-gray-200 rotate-45"></div>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML += `
+                    <div class="relative w-full flex justify-center py-4 z-10">
+                        <div class="relative ${offsetClass}">
+                            ${tooltip}
+                            
+                            <!-- Connecting line to next node (kecuali terakhir) -->
+                            ${index < MODULES.length - 1 ? `<div class="absolute top-1/2 left-1/2 w-4 h-24 -ml-2 -z-10 ${state.completed.includes(MODULES[index+1]?.id) ? 'bg-yellow-400' : isActive ? 'bg-gray-200' : 'bg-gray-200'}"></div>` : ''}
+
+                            <button onclick="openModule('${m.id}')" ${isLocked ? 'disabled' : ''} class="duo-btn w-20 h-20 rounded-full flex items-center justify-center text-3xl border-b-4 border-2 ${btnStyle} relative z-10">
+                                <i class="fa-solid ${isLocked ? 'fa-lock' : (isCompleted ? 'fa-check' : m.icon)}"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Side Text -->
+                        <div class="absolute right-4 top-1/2 transform -translate-y-1/2 hidden sm:block w-32">
+                             <div class="font-black ${isActive ? 'text-gray-800' : 'text-gray-400'}">${m.name}</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openModule(id) {
+            const mod = MODULES.find(m => m.id === id);
+            document.getElementById('btn-back').classList.remove('hidden');
+            
+            if (id === 'pretest' || id === 'posttest') renderTest(id);
+            if (id === 'mission') { state.missionLevel = 0; renderMission(); }
+            
+            switchView(mod.view);
+        }
+
+        // ================= SPECIFIC MODULES =================
+        function renderTest(type) {
+            document.getElementById('test-title').innerText = type === 'pretest' ? 'Pretest (Asesmen Awal)' : 'Posttest (Asesmen Akhir)';
+            document.getElementById('test-container').innerHTML = `
+                <div class="font-bold text-gray-600 mb-6">Pilih jawaban yang paling tepat. Tenang saja, ini untuk mengukur pemahamanmu.</div>
+                <div class="mb-4">
+                    <p class="font-black text-gray-800 mb-2">1. Apa sumber cahaya terbesar bagi bumi?</p>
+                    <div class="space-y-2">
+                        <button class="duo-btn btn-white w-full text-left p-3 rounded-xl font-bold border-2 border-gray-200">A. Bulan</button>
+                        <button class="duo-btn btn-white w-full text-left p-3 rounded-xl font-bold border-2 border-gray-200 focus:bg-blue-50 focus:border-[#1cb0f6]">B. Matahari</button>
+                        <button class="duo-btn btn-white w-full text-left p-3 rounded-xl font-bold border-2 border-gray-200">C. Bintang</button>
+                    </div>
+                </div>
+                <button onclick="unlock('${type}', 10)" class="duo-btn btn-green w-full py-3 rounded-2xl font-extrabold mt-4">Selesai & Kumpulkan</button>
+            `;
+        }
+
+        function sendChat() {
+            const input = document.getElementById('chat-input');
+            const box = document.getElementById('chat-box');
+            if(!input.value.trim()) return;
+
+            // User msg
+            box.innerHTML += `<div class="flex justify-end gap-3"><div class="bg-[#1cb0f6] text-white p-3 rounded-2xl rounded-tr-none max-w-[85%] font-semibold shadow-sm">${input.value}</div></div>`;
+            input.value = '';
+            box.scrollTop = box.scrollHeight;
+            
+            const activeSources = AI_SOURCES.filter(s => s.active).length;
+
+            // Bot msg (Mock RAG)
+            setTimeout(() => {
+                box.innerHTML += `<div class="flex gap-3"><div class="bg-gray-100 border-2 border-gray-200 p-3 rounded-2xl rounded-tl-none max-w-[85%] font-semibold text-gray-700 shadow-sm">Berdasarkan ${activeSources} sumber referensi aktif (dan persona "${AI_PERSONA.name}"), ini adalah respon mock-up. Cahaya merambat lurus! <br><span class="text-xs text-blue-500 font-bold mt-1 block">[Sumber diverifikasi]</span></div></div>`;
+                box.scrollTop = box.scrollHeight;
+                if(!state.completed.includes('tutor')) unlock('tutor', 5);
+            }, 1000);
+        }
+
+        function saveLab() {
+            unlock('lab', 20);
+        }
+
+        function renderMission() {
+            if (state.missionLevel >= MISSIONS_DATA.length) {
+                unlock('mission', 50);
+                return;
+            }
+            
+            // Reset mission state
+            missionState.selectedOption = null;
+            missionState.isAnswerChecked = false;
+            
+            const btnCheck = document.getElementById('btn-mission-check');
+            btnCheck.disabled = true;
+            btnCheck.classList.remove('btn-red');
+            btnCheck.classList.add('btn-green');
+            btnCheck.innerText = 'Periksa';
+            
+            document.getElementById('mission-feedback').classList.remove('show');
+            document.getElementById('btn-back').classList.add('hidden'); // Sembunyikan navbar global back
+
+            const m = MISSIONS_DATA[state.missionLevel];
+            document.getElementById('mission-xp-reward').innerText = m.xp;
+            document.getElementById('mission-progress').style.width = `${((state.missionLevel)/MISSIONS_DATA.length)*100}%`;
+            document.getElementById('mission-question').innerText = m.q;
+            
+            let html = '';
+            m.options.forEach((opt, idx) => {
+                html += `
+                <button id="opt-${idx}" onclick="selectOption(${idx})" class="w-full text-left p-4 rounded-2xl font-bold border-2 border-gray-200 mb-2 text-gray-700 hover:bg-gray-50 transition-colors relative overflow-hidden group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-8 h-8 rounded-lg border-2 border-gray-300 flex items-center justify-center font-black text-gray-400 group-hover:border-blue-400">${idx+1}</div>
+                        <span class="text-lg">${opt}</span>
+                    </div>
+                </button>`;
+            });
+            document.getElementById('mission-options').innerHTML = html;
+        }
+
+        function selectOption(idx) {
+            if (missionState.isAnswerChecked) return; // Prevent change after checked
+
+            missionState.selectedOption = idx;
+            
+            // Reset all styles
+            const options = document.getElementById('mission-options').querySelectorAll('button');
+            options.forEach((btn, i) => {
+                const numBox = btn.querySelector('div > div');
+                if (i === idx) {
+                    btn.className = "w-full text-left p-4 rounded-2xl font-bold border-2 border-[#1cb0f6] bg-[#ddf4ff] mb-2 text-blue-500 relative overflow-hidden group duo-btn border-b-4";
+                    numBox.className = "w-8 h-8 rounded-lg border-2 border-[#1cb0f6] flex items-center justify-center font-black text-[#1cb0f6]";
+                } else {
+                    btn.className = "w-full text-left p-4 rounded-2xl font-bold border-2 border-gray-200 mb-2 text-gray-700 hover:bg-gray-50 transition-colors relative overflow-hidden group";
+                    numBox.className = "w-8 h-8 rounded-lg border-2 border-gray-300 flex items-center justify-center font-black text-gray-400";
+                }
+            });
+
+            // Enable check button
+            const btnCheck = document.getElementById('btn-mission-check');
+            btnCheck.disabled = false;
+        }
+
+        function submitMissionAnswer() {
+            if (missionState.selectedOption === null) return;
+            
+            missionState.isAnswerChecked = true;
+            const m = MISSIONS_DATA[state.missionLevel];
+            const isCorrect = missionState.selectedOption === m.answer;
+            const btnCheck = document.getElementById('btn-mission-check');
+            
+            btnCheck.disabled = true; // disable checking again
+            
+            const drawer = document.getElementById('mission-feedback');
+            const drawerIcon = document.getElementById('feedback-icon');
+            const drawerTitle = document.getElementById('feedback-title');
+            const drawerDesc = document.getElementById('feedback-desc');
+            const btnNext = document.getElementById('btn-mission-next');
+
+            if (isCorrect) {
+                // Correct UI
+                drawer.className = "feedback-drawer show bg-[#d7ffb8] border-[#58a700] text-[#58a700] p-6 border-t-2";
+                drawerIcon.innerHTML = '<i class="fa-solid fa-check text-[#58cc02]"></i>';
+                drawerTitle.innerText = "Luar Biasa!";
+                drawerDesc.innerText = `Jawaban yang tepat. +${m.xp} XP`;
+                
+                btnNext.className = "duo-btn btn-green w-full sm:w-auto py-3 px-8 rounded-2xl font-extrabold text-lg uppercase tracking-wider";
+                
+                state.xp += m.xp;
+            } else {
+                // Wrong UI
+                document.getElementById(`opt-${missionState.selectedOption}`).classList.add('shake');
+                
+                drawer.className = "feedback-drawer show bg-[#ffdfe0] border-[#ea2b2b] text-[#ea2b2b] p-6 border-t-2";
+                drawerIcon.innerHTML = '<i class="fa-solid fa-xmark text-[#ea2b2b]"></i>';
+                drawerTitle.innerText = "Kurang Tepat";
+                drawerDesc.innerText = `Jawaban yang benar: ${m.options[m.answer]}`;
+                
+                btnNext.className = "duo-btn btn-red w-full sm:w-auto py-3 px-8 rounded-2xl font-extrabold text-lg uppercase tracking-wider";
+            }
+        }
+        
+        function nextMission() {
+            const m = MISSIONS_DATA[state.missionLevel];
+            const isCorrect = missionState.selectedOption === m.answer;
+            
+            if (isCorrect) {
+                state.missionLevel++;
+                saveState();
+                renderMission();
+            } else {
+                // If wrong, for simplicity in this demo, we just proceed to next or restart
+                // Let's just proceed to next without XP
+                state.missionLevel++;
+                saveState();
+                renderMission();
+            }
+        }
+
+        function saveQuran() {
+            unlock('quran', 15);
+        }
+
+        function reviewLiteracy() {
+            const fb = document.getElementById('literacy-feedback');
+            fb.classList.remove('hidden');
+            fb.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> AI sedang mereview...';
+            setTimeout(() => {
+                fb.innerHTML = '<i class="fa-solid fa-check text-green-500 mr-2"></i> <b>Saran AI:</b> Struktur laporan sudah bagus! Pastikan tanda baca titik (.) digunakan di akhir kalimat.';
+            }, 1500);
+        }
+
+        function saveLiteracy() {
+            unlock('literacy', 20);
+        }
+
+        // ================= GURU DASHBOARD =================
+        const dummyStudentData = [
+            { nama: 'Ahmad', prog: '100%', progNum: 100, xp: 120, nilai: 90 },
+            { nama: 'Budi', prog: '70%', progNum: 70, xp: 85, nilai: 80 },
+            { nama: 'Citra', prog: '40%', progNum: 40, xp: 40, nilai: 75 },
+            { nama: 'Dewi', prog: '85%', progNum: 85, xp: 95, nilai: 88 },
+        ];
+
+        function renderTeacherDashboard() {
+            document.getElementById('btn-back').classList.remove('hidden');
+            const tbody = document.getElementById('table-siswa');
+            
+            tbody.innerHTML = '';
+            dummyStudentData.forEach(d => {
+                tbody.innerHTML += `
+                    <tr class="border-b-2 border-gray-100 last:border-0 text-gray-700">
+                        <td class="p-3 py-4">${d.nama}</td>
+                        <td class="p-3">
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: ${d.prog}"></div>
+                            </div>
+                        </td>
+                        <td class="p-3 text-yellow-500 font-black">${d.xp} XP</td>
+                        <td class="p-3 text-center">
+                            <button onclick="downloadStudentReportPDF('${d.nama}', '${d.prog}', ${d.xp}, ${d.nilai})" class="duo-btn btn-white text-blue-500 border-blue-200 hover:bg-blue-50 text-xs py-1 px-3 rounded-lg font-bold">
+                                <i class="fa-solid fa-file-pdf"></i> PDF
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            renderAdminMissions();
+            renderAISources();
+            
+            // Populate Persona
+            document.getElementById('ai-persona-name').value = AI_PERSONA.name;
+            document.getElementById('ai-persona-style').value = AI_PERSONA.style;
+            document.getElementById('ai-persona-prompt').value = AI_PERSONA.prompt;
+        }
+
+        // ================= FITUR EKSPOR PDF =================
+        function downloadClassReportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("Laporan Progres Kelas - CAHAYA AI", 14, 20);
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("Mata Pelajaran: IPAS Kelas 5 (Fase C) - Keajaiban Cahaya", 14, 28);
+            doc.text(`Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`, 14, 34);
+
+            const tableColumn = ["No", "Nama Siswa", "Progres", "Total XP", "Nilai Akhir"];
+            const tableRows = [];
+
+            dummyStudentData.forEach((d, index) => {
+                const rowData = [index + 1, d.nama, d.prog, `${d.xp} XP`, d.nilai];
+                tableRows.push(rowData);
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 40,
+                theme: 'grid',
+                headStyles: { fillColor: [28, 176, 246] } // Warna biru aplikasi
+            });
+
+            doc.save("Laporan_Rekap_Kelas_IPAS.pdf");
+            showToast("Laporan kelas berhasil diunduh!", "success");
+        }
+
+        function downloadStudentReportPDF(nama, prog, xp, nilai) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(18);
+            doc.setTextColor(28, 176, 246);
+            doc.text("RAPOR PERKEMBANGAN CAHAYA AI", 105, 25, null, null, "center");
+            
+            doc.setLineWidth(0.5);
+            doc.line(20, 30, 190, 30);
+            
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(12);
+            doc.text(`Nama Siswa    : ${nama}`, 20, 45);
+            doc.text(`Tema          : Keajaiban Cahaya (IPAS Fase C)`, 20, 53);
+            doc.text(`Tanggal       : ${new Date().toLocaleDateString('id-ID')}`, 20, 61);
+            
+            // Kotak Nilai & XP
+            doc.setFillColor(245, 245, 245);
+            doc.roundedRect(20, 75, 170, 30, 3, 3, 'F');
+            
+            doc.setFontSize(11);
+            doc.text("Pencapaian Belajar:", 25, 83);
+            doc.setFont("helvetica", "normal");
+            doc.text(`- Progres Modul Selesai : ${prog}`, 25, 91);
+            doc.text(`- Total XP Dikumpulkan  : ${xp} XP`, 25, 99);
+            
+            doc.setFont("helvetica", "bold");
+            doc.text("Catatan AI & Guru:", 20, 120);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Ananda ${nama} telah menyelesaikan ${prog} dari seluruh misi pembelajaran.`, 20, 128);
+            doc.text(`Siswa menunjukkan antusiasme yang baik dalam eksperimen sains dan pemahaman ayat.`, 20, 136);
+            doc.text(`Nilai Rata-rata Evaluasi: ${nilai} / 100`, 20, 144);
+            
+            doc.save(`Rapor_Siswa_${nama}.pdf`);
+            showToast(`Laporan PDF ${nama} berhasil diunduh!`, "success");
+        }
+
+        function renderAdminMissions() {
+            const list = document.getElementById('mission-list-admin');
+            list.innerHTML = '';
+            MISSIONS_DATA.forEach((m, idx) => {
+                list.innerHTML += `
+                    <li class="flex justify-between items-start bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <div>
+                            <div class="font-bold text-gray-800">${idx + 1}. ${m.q}</div>
+                            <div class="text-xs text-gray-500 mt-1">Jawaban: <span class="text-green-600 font-bold">${m.options[m.answer]}</span> | Reward: ${m.xp} XP</div>
+                        </div>
+                    </li>
+                `;
+            });
+        }
+
+        function addMission() {
+            const q = document.getElementById('new-q-text').value;
+            const opt0 = document.getElementById('new-q-opt0').value;
+            const opt1 = document.getElementById('new-q-opt1').value;
+            const opt2 = document.getElementById('new-q-opt2').value;
+            const opt3 = document.getElementById('new-q-opt3').value;
+            const ans = parseInt(document.getElementById('new-q-ans').value);
+            const xp = parseInt(document.getElementById('new-q-xp').value);
+
+            if (!q || !opt0 || !opt1 || !opt2 || !opt3 || !xp) {
+                showToast("Mohon lengkapi semua kolom soal!", "info");
+                return;
+            }
+
+            MISSIONS_DATA.push({
+                q: q,
+                options: [opt0, opt1, opt2, opt3],
+                answer: ans,
+                xp: xp
+            });
+
+            localStorage.setItem('cahaya_missions', JSON.stringify(MISSIONS_DATA));
+            renderAdminMissions();
+            
+            // Clear inputs
+            document.getElementById('new-q-text').value = '';
+            document.getElementById('new-q-opt0').value = '';
+            document.getElementById('new-q-opt1').value = '';
+            document.getElementById('new-q-opt2').value = '';
+            document.getElementById('new-q-opt3').value = '';
+            document.getElementById('new-q-xp').value = '';
+
+            showToast("Soal berhasil ditambahkan!", "success");
+        }
+        
+        // ================= MANAJEMEN AI =================
+        function saveAIPersona() {
+            AI_PERSONA.name = document.getElementById('ai-persona-name').value || 'Tutor AI';
+            AI_PERSONA.style = document.getElementById('ai-persona-style').value;
+            AI_PERSONA.prompt = document.getElementById('ai-persona-prompt').value;
+            
+            localStorage.setItem('cahaya_ai_persona', JSON.stringify(AI_PERSONA));
+            showToast("Pengaturan karakter AI berhasil disimpan!", "success");
+            
+            // Update nama di chatbox jika ada
+            const titleEl = document.querySelector('#view-ai-tutor h3');
+            if(titleEl) titleEl.innerText = AI_PERSONA.name;
+        }
+
+        function switchSourceTab(tab) {
+            currentSourceTab = tab;
+            
+            // Reset tab styles
+            ['text', 'link', 'file'].forEach(t => {
+                const btn = document.getElementById(`tab-src-${t}`);
+                const panel = document.getElementById(`src-input-${t}`);
+                
+                if (t === tab) {
+                    btn.className = "flex-1 bg-orange-100 text-orange-700 font-bold py-2 rounded-lg border-2 border-orange-200 transition-colors";
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = "flex-1 bg-gray-50 text-gray-500 font-bold py-2 rounded-lg border-2 border-gray-200 transition-colors";
+                    panel.classList.add('hidden');
+                }
+            });
+        }
+
+        function renderAISources() {
+            const list = document.getElementById('ai-sources-list');
+            list.innerHTML = '';
+            
+            AI_SOURCES.forEach((s) => {
+                let icon = 'fa-file-lines';
+                if (s.type === 'link') icon = 'fa-link';
+                if (s.type === 'file') icon = 'fa-file-pdf';
+                
+                const badgeColor = s.active ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600';
+                const badgeText = s.active ? 'Aktif' : 'Nonaktif';
+                const opacity = s.active ? 'opacity-100' : 'opacity-60';
+
+                list.innerHTML += `
+                    <li class="flex justify-between items-center bg-gray-100 p-3 rounded-lg border border-gray-200 ${opacity} transition-opacity">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid ${icon} text-orange-400 text-lg"></i>
+                            <span class="font-bold text-gray-700">${s.title}</span>
+                        </div>
+                        <button onclick="toggleAISource(${s.id})" class="text-xs ${badgeColor} px-3 py-1 rounded-md font-bold hover:shadow-md transition-shadow">
+                            ${badgeText} <i class="fa-solid fa-power-off ml-1"></i>
+                        </button>
+                    </li>
+                `;
+            });
+        }
+        
+        function toggleAISource(id) {
+            const source = AI_SOURCES.find(s => s.id === id);
+            if (source) {
+                source.active = !source.active;
+                localStorage.setItem('cahaya_ai_sources', JSON.stringify(AI_SOURCES));
+                renderAISources();
+                showToast(source.active ? "Sumber diaktifkan!" : "Sumber dinonaktifkan!", "success");
+            }
+        }
+
+        function addAISource() {
+            let title = '';
+            
+            if (currentSourceTab === 'text') {
+                title = document.getElementById('ai-source-title-text').value;
+                const content = document.getElementById('ai-source-content').value;
+                if (!title || !content) return showToast("Judul dan isi materi harus diisi!", "info");
+            } else if (currentSourceTab === 'link') {
+                title = document.getElementById('ai-source-title-link').value;
+                const url = document.getElementById('ai-source-url').value;
+                if (!title || !url) return showToast("Judul dan tautan web harus diisi!", "info");
+            } else if (currentSourceTab === 'file') {
+                const fileInput = document.getElementById('ai-source-file');
+                if (!fileInput.files.length) return showToast("Pilih file terlebih dahulu!", "info");
+                title = fileInput.files[0].name;
+            }
+
+            AI_SOURCES.unshift({
+                id: Date.now(),
+                type: currentSourceTab,
+                title: title,
+                active: true
+            });
+            
+            localStorage.setItem('cahaya_ai_sources', JSON.stringify(AI_SOURCES));
+            renderAISources();
+            
+            // Clear inputs
+            document.getElementById('ai-source-title-text').value = '';
+            document.getElementById('ai-source-content').value = '';
+            document.getElementById('ai-source-title-link').value = '';
+            document.getElementById('ai-source-url').value = '';
+            document.getElementById('ai-source-file').value = '';
+            
+            showToast("Referensi berhasil di-embedding ke AI Database (Supabase)!", "success");
+        }
+
+        // INIT
+        window.onload = init;
+    </script>
+</body>
+</html>
