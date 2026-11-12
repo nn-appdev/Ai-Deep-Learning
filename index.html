@@ -593,8 +593,8 @@
         const SUPABASE_URL = 'https://dqxpxjgoppryeogrcsmo.supabase.co';
         const SUPABASE_KEY = 'sb_publishable__8yL62X-yY25qDEprbyR8A_JmiuFwVT';
         
-        // Inisialisasi Klien Supabase
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Inisialisasi Klien Supabase (Ubah nama variabel agar tidak bentrok)
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // ================= STATE & DATA =================
         let appSettings = {
@@ -712,7 +712,7 @@
             }
             
             // Cek inisialisasi Supabase (Opsional: Memberikan feedback ke console)
-            console.log("Supabase Client Initialized:", supabase);
+            console.log("Supabase Client Initialized:", supabaseClient);
         }
 
         function saveState() {
