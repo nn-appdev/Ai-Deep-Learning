@@ -15,6 +15,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -526,6 +529,24 @@
                     </ul>
                 </div>
                 
+                <!-- Panel Pengaturan Model Pembelajaran -->
+                <div class="bg-white border-2 border-gray-200 rounded-3xl p-5 md:col-span-2">
+                    <h3 class="font-black text-gray-800 mb-2"><i class="fa-solid fa-sitemap text-emerald-500"></i> Sintaks & Model Pembelajaran</h3>
+                    <p class="text-xs font-bold text-gray-500 mb-4">Pilih model pembelajaran yang diterapkan. Ini akan secara dinamis mengubah alur belajar, urutan modul, dan instruksi untuk siswa.</p>
+                    
+                    <select id="setting-learning-model" onchange="saveLearningModel()" class="w-full bg-gray-50 border-2 border-gray-200 rounded-xl p-3 font-bold focus:outline-none focus:border-emerald-400 text-sm text-gray-700 mb-4">
+                        <option value="default">Alur Standar (Campuran)</option>
+                        <option value="pbl">Problem-Based Learning (PBL)</option>
+                        <option value="pjbl">Project-Based Learning (PjBL)</option>
+                        <option value="inkuiri">Inquiry-Based Learning (Inkuiri)</option>
+                        <option value="stem">Pendekatan STEM (5E Model)</option>
+                    </select>
+
+                    <div id="model-preview" class="p-4 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-sm font-bold text-emerald-800 space-y-2">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
                 <!-- Panel Kelola Soal Misi -->
                 <div class="bg-white border-2 border-gray-200 rounded-3xl p-5 md:col-span-2">
                     <h3 class="font-black text-gray-800 mb-2"><i class="fa-solid fa-gamepad text-red-500"></i> Manajemen Misi & Soal</h3>
@@ -568,16 +589,64 @@
 
     <!-- JavaScript Logic -->
     <script>
+        // ================= SUPABASE INITIALIZATION =================
+        const SUPABASE_URL = 'https://dqxpxjgoppryeogrcsmo.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable__8yL62X-yY25qDEprbyR8A_JmiuFwVT';
+        
+        // Inisialisasi Klien Supabase
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
         // ================= STATE & DATA =================
-        const MODULES = [
-            { id: 'pretest', name: 'Pretest', icon: 'fa-file-signature', color: 'text-gray-500', bg: 'bg-white', view: 'view-test', required: [] },
-            { id: 'tutor', name: 'Tutor AI', icon: 'fa-robot', color: 'text-blue-500', bg: 'bg-white', view: 'view-ai-tutor', required: ['pretest'] },
-            { id: 'lab', name: 'Lab Eksperimen', icon: 'fa-flask', color: 'text-purple-500', bg: 'bg-white', view: 'view-science-lab', required: ['pretest'] },
-            { id: 'mission', name: 'Misi Permainan', icon: 'fa-gamepad', color: 'text-red-500', bg: 'bg-white', view: 'view-mission', required: ['lab'] },
-            { id: 'quran', name: 'Quran Connect', icon: 'fa-book-quran', color: 'text-emerald-500', bg: 'bg-white', view: 'view-quran', required: ['mission'] },
-            { id: 'literacy', name: 'Studio Literasi', icon: 'fa-feather', color: 'text-orange-500', bg: 'bg-white', view: 'view-literacy', required: ['mission'] },
-            { id: 'posttest', name: 'Posttest', icon: 'fa-medal', color: 'text-yellow-500', bg: 'bg-white', view: 'view-test', required: ['literacy', 'quran'] }
-        ];
+        let appSettings = {
+            learningModel: 'default'
+        };
+
+        const PATH_CONFIGS = {
+            default: [
+                { id: 'pretest', name: 'Pretest', icon: 'fa-file-signature', view: 'view-test', required: [] },
+                { id: 'tutor', name: 'Tutor AI', icon: 'fa-robot', view: 'view-ai-tutor', required: ['pretest'] },
+                { id: 'lab', name: 'Lab Eksperimen', icon: 'fa-flask', view: 'view-science-lab', required: ['pretest'] },
+                { id: 'mission', name: 'Misi Permainan', icon: 'fa-gamepad', view: 'view-mission', required: ['lab'] },
+                { id: 'quran', name: 'Quran Connect', icon: 'fa-book-quran', view: 'view-quran', required: ['mission'] },
+                { id: 'literacy', name: 'Studio Literasi', icon: 'fa-feather', view: 'view-literacy', required: ['mission'] },
+                { id: 'posttest', name: 'Posttest', icon: 'fa-medal', view: 'view-test', required: ['literacy', 'quran'] }
+            ],
+            pbl: [
+                { id: 'pbl_1', name: '1. Orientasi Masalah', icon: 'fa-person-circle-question', view: 'view-ai-tutor', required: [] },
+                { id: 'pbl_2', name: '2. Organisasi Siswa', icon: 'fa-users', view: 'view-quran', required: ['pbl_1'] },
+                { id: 'pbl_3', name: '3. Penyelidikan', icon: 'fa-magnifying-glass', view: 'view-science-lab', required: ['pbl_2'] },
+                { id: 'pbl_4', name: '4. Sajikan Hasil', icon: 'fa-laptop-code', view: 'view-literacy', required: ['pbl_3'] },
+                { id: 'pbl_5', name: '5. Evaluasi Proses', icon: 'fa-clipboard-check', view: 'view-mission', required: ['pbl_4'] }
+            ],
+            pjbl: [
+                { id: 'pjbl_1', name: '1. Pertanyaan Dasar', icon: 'fa-circle-question', view: 'view-ai-tutor', required: [] },
+                { id: 'pjbl_2', name: '2. Desain Proyek', icon: 'fa-pen-ruler', view: 'view-literacy', required: ['pjbl_1'] },
+                { id: 'pjbl_3', name: '3. Susun Jadwal', icon: 'fa-calendar-days', view: 'view-quran', required: ['pjbl_2'] },
+                { id: 'pjbl_4', name: '4. Monitoring', icon: 'fa-list-check', view: 'view-science-lab', required: ['pjbl_3'] },
+                { id: 'pjbl_5', name: '5. Uji Hasil', icon: 'fa-vial', view: 'view-mission', required: ['pjbl_4'] },
+                { id: 'pjbl_6', name: '6. Evaluasi Akhir', icon: 'fa-award', view: 'view-test', required: ['pjbl_5'] }
+            ],
+            inkuiri: [
+                { id: 'inq_1', name: '1. Rumuskan Masalah', icon: 'fa-magnifying-glass', view: 'view-ai-tutor', required: [] },
+                { id: 'inq_2', name: '2. Hipotesis', icon: 'fa-lightbulb', view: 'view-literacy', required: ['inq_1'] },
+                { id: 'inq_3', name: '3. Kumpulkan Data', icon: 'fa-flask', view: 'view-science-lab', required: ['inq_2'] },
+                { id: 'inq_4', name: '4. Analisis Data', icon: 'fa-chart-pie', view: 'view-mission', required: ['inq_3'] },
+                { id: 'inq_5', name: '5. Kesimpulan', icon: 'fa-clipboard-check', view: 'view-quran', required: ['inq_4'] }
+            ],
+            stem: [
+                { id: 'stem_1', name: 'Pertemuan 1: Engagement', icon: 'fa-handshake-angle', view: 'view-ai-tutor', required: [] },
+                { id: 'stem_2', name: 'Pertemuan 2: Exploration 1', icon: 'fa-compass', view: 'view-science-lab', required: ['stem_1'] },
+                { id: 'stem_3', name: 'Pertemuan 3: Exploration 2', icon: 'fa-magnifying-glass', view: 'view-mission', required: ['stem_2'] },
+                { id: 'stem_4', name: 'Pertemuan 4: Explanation', icon: 'fa-chalkboard-user', view: 'view-ai-tutor', required: ['stem_3'] },
+                { id: 'stem_5', name: 'Pertemuan 5: Elaboration', icon: 'fa-sitemap', view: 'view-quran', required: ['stem_4'] },
+                { id: 'stem_6', name: 'Pertemuan 6: Evaluation (Data)', icon: 'fa-chart-simple', view: 'view-literacy', required: ['stem_5'] },
+                { id: 'stem_7', name: 'Pertemuan 7: Evaluation (Aksi)', icon: 'fa-clipboard-check', view: 'view-test', required: ['stem_6'] }
+            ]
+        };
+
+        function getModules() {
+            return PATH_CONFIGS[appSettings.learningModel] || PATH_CONFIGS.default;
+        }
 
         let MISSIONS_DATA = [
             { q: "Benda yang dapat ditembus cahaya disebut benda...", options: ["Gelap", "Bening", "Keras", "Padat"], answer: 1, xp: 15 },
@@ -589,7 +658,8 @@
             role: null,
             completed: [],
             xp: 0,
-            missionLevel: 0
+            missionLevel: 0,
+            currentModuleId: null
         };
         
         let missionState = {
@@ -614,6 +684,11 @@
 
         // ================= CORE FUNCTIONS =================
         function init() {
+            const savedSettings = localStorage.getItem('cahaya_settings');
+            if (savedSettings) {
+                appSettings = JSON.parse(savedSettings);
+            }
+
             const saved = localStorage.getItem('cahaya_state');
             const savedMissions = localStorage.getItem('cahaya_missions');
             const savedSources = localStorage.getItem('cahaya_ai_sources');
@@ -635,6 +710,9 @@
                 else if (state.role === 'guru') login('guru');
                 else if (state.role === 'ortu') login('ortu');
             }
+            
+            // Cek inisialisasi Supabase (Opsional: Memberikan feedback ke console)
+            console.log("Supabase Client Initialized:", supabase);
         }
 
         function saveState() {
@@ -674,16 +752,17 @@
             
             if (role === 'siswa') {
                 document.getElementById('nav-stats').classList.remove('hidden');
+                switchView('view-dashboard-siswa');
                 goHome();
                 showToast("Selamat datang kembali!", "success");
             } else if (role === 'guru') {
                 document.getElementById('nav-stats').classList.add('hidden');
-                renderTeacherDashboard();
                 switchView('view-dashboard-guru');
+                renderTeacherDashboard();
             } else if (role === 'ortu') {
                 document.getElementById('nav-stats').classList.add('hidden');
-                renderParentDashboard();
                 switchView('view-dashboard-ortu');
+                renderParentDashboard();
             }
         }
 
@@ -696,14 +775,15 @@
 
         function goHome() {
             document.getElementById('btn-back').classList.add('hidden');
+            switchView('view-dashboard-siswa');
             renderPath();
             updateUI();
-            switchView('view-dashboard-siswa');
         }
 
         function updateUI() {
             document.getElementById('nav-xp').innerText = state.xp;
             
+            const MODULES = getModules();
             const progress = Math.round((state.completed.length / MODULES.length) * 100);
             const bar = document.getElementById('progress-bar');
             const text = document.getElementById('progress-text');
@@ -725,6 +805,7 @@
         }
 
         function showModal(id, xpGain) {
+            const MODULES = getModules();
             const mod = MODULES.find(m => m.id === id);
             document.getElementById('modal-msg').innerText = `Kamu telah menyelesaikan ${mod ? mod.name : 'modul'}!`;
             document.getElementById('modal-xp').innerText = `+${xpGain} XP`;
@@ -741,6 +822,7 @@
             document.getElementById('btn-back').classList.remove('hidden');
             document.getElementById('ortu-xp').innerText = state.xp;
             
+            const MODULES = getModules();
             const progress = Math.round((state.completed.length / MODULES.length) * 100);
             document.getElementById('ortu-progress').innerText = progress + '%';
             
@@ -808,7 +890,7 @@
             const container = document.getElementById('learning-path');
             container.innerHTML = '';
             
-            // Pola kelok-kelok (winding pattern) responsif untuk HP dan PC
+            const MODULES = getModules();
             const offsets = ['ml-0', 'ml-8 sm:ml-16', 'ml-16 sm:ml-32', 'ml-8 sm:ml-16', 'ml-0', '-ml-8 sm:-ml-16', '-ml-16 sm:-ml-32', '-ml-8 sm:-ml-16'];
             
             MODULES.forEach((m, index) => {
@@ -854,18 +936,27 @@
         }
 
         function openModule(id) {
+            state.currentModuleId = id;
+            const MODULES = getModules();
             const mod = MODULES.find(m => m.id === id);
             document.getElementById('btn-back').classList.remove('hidden');
             
-            if (id === 'pretest' || id === 'posttest') renderTest(id);
-            if (id === 'mission') { state.missionLevel = 0; renderMission(); }
+            // Sesuaikan Judul Halaman Secara Dinamis berdasarkan model
+            if (mod.view === 'view-test') document.getElementById('test-title').innerText = mod.name;
+            if (mod.view === 'view-ai-tutor') document.querySelector('#view-ai-tutor h3').innerText = mod.name;
+            if (mod.view === 'view-science-lab') document.querySelector('#view-science-lab h2').innerHTML = `<i class="fa-solid ${mod.icon} text-purple-500"></i> ${mod.name}`;
+            if (mod.view === 'view-quran') document.querySelector('#view-quran h2').innerText = mod.name;
+            if (mod.view === 'view-literacy') document.querySelector('#view-literacy h2').innerHTML = `<i class="fa-solid ${mod.icon} text-orange-500"></i> ${mod.name}`;
+
+            if (mod.view === 'view-test') renderTest(mod.name);
+            if (mod.view === 'view-mission') { state.missionLevel = 0; renderMission(); }
             
             switchView(mod.view);
         }
 
         // ================= SPECIFIC MODULES =================
-        function renderTest(type) {
-            document.getElementById('test-title').innerText = type === 'pretest' ? 'Pretest (Asesmen Awal)' : 'Posttest (Asesmen Akhir)';
+        function renderTest(titleName) {
+            document.getElementById('test-title').innerText = titleName;
             document.getElementById('test-container').innerHTML = `
                 <div class="font-bold text-gray-600 mb-6">Pilih jawaban yang paling tepat. Tenang saja, ini untuk mengukur pemahamanmu.</div>
                 <div class="mb-4">
@@ -876,7 +967,7 @@
                         <button class="duo-btn btn-white w-full text-left p-3 rounded-xl font-bold border-2 border-gray-200">C. Bintang</button>
                     </div>
                 </div>
-                <button onclick="unlock('${type}', 10)" class="duo-btn btn-green w-full py-3 rounded-2xl font-extrabold mt-4">Selesai & Kumpulkan</button>
+                <button onclick="unlock(state.currentModuleId, 10)" class="duo-btn btn-green w-full py-3 rounded-2xl font-extrabold mt-4">Selesai & Kumpulkan</button>
             `;
         }
 
@@ -897,7 +988,7 @@
                 setTimeout(() => {
                     box.innerHTML += `<div class="flex gap-3"><div class="bg-gray-100 border-2 border-gray-200 p-3 rounded-2xl rounded-tl-none max-w-[85%] font-semibold text-gray-700 shadow-sm">Maaf, API Key Gemini belum diatur di panel Guru. Ini adalah respons simulasi: Cahaya merambat lurus! <br><span class="text-xs text-red-500 font-bold mt-1 block">[Mode Simulasi Aktif]</span></div></div>`;
                     box.scrollTop = box.scrollHeight;
-                    if(!state.completed.includes('tutor')) unlock('tutor', 5);
+                    if(!state.completed.includes(state.currentModuleId)) unlock(state.currentModuleId, 5);
                 }, 1000);
                 return;
             }
@@ -943,7 +1034,7 @@ Pertanyaan siswa: ${message}`;
 
                     box.innerHTML += `<div class="flex gap-3"><div class="bg-gray-100 border-2 border-gray-200 p-3 rounded-2xl rounded-tl-none max-w-[85%] font-semibold text-gray-700 shadow-sm">${aiText} <br><span class="text-[10px] text-[#1cb0f6] font-extrabold mt-2 block uppercase"><i class="fa-solid fa-sparkles"></i> Didukung Gemini 1.5 Flash</span></div></div>`;
                     
-                    if(!state.completed.includes('tutor')) unlock('tutor', 5);
+                    if(!state.completed.includes(state.currentModuleId)) unlock(state.currentModuleId, 5);
                 }
             } catch (error) {
                 document.getElementById(loadingId).remove();
@@ -954,12 +1045,12 @@ Pertanyaan siswa: ${message}`;
         }
 
         function saveLab() {
-            unlock('lab', 20);
+            unlock(state.currentModuleId, 20);
         }
 
         function renderMission() {
             if (state.missionLevel >= MISSIONS_DATA.length) {
-                unlock('mission', 50);
+                unlock(state.currentModuleId, 50);
                 return;
             }
             
@@ -1074,7 +1165,7 @@ Pertanyaan siswa: ${message}`;
         }
 
         function saveQuran() {
-            unlock('quran', 15);
+            unlock(state.currentModuleId, 15);
         }
 
         function reviewLiteracy() {
@@ -1087,7 +1178,7 @@ Pertanyaan siswa: ${message}`;
         }
 
         function saveLiteracy() {
-            unlock('literacy', 20);
+            unlock(state.currentModuleId, 20);
         }
 
         // ================= GURU DASHBOARD =================
@@ -1125,11 +1216,41 @@ Pertanyaan siswa: ${message}`;
             renderAdminMissions();
             renderAISources();
             
-            // Populate Persona
+            // Populate Persona & Settings
             document.getElementById('ai-persona-name').value = AI_PERSONA.name || '';
             document.getElementById('ai-persona-style').value = AI_PERSONA.style || 'ramah';
             document.getElementById('ai-persona-prompt').value = AI_PERSONA.prompt || '';
-            document.getElementById('ai-persona-key').value = AI_PERSONA.key || ''; // Load Key
+            document.getElementById('ai-persona-key').value = AI_PERSONA.key || ''; 
+            
+            document.getElementById('setting-learning-model').value = appSettings.learningModel;
+            renderModelPreview();
+        }
+
+        function renderModelPreview() {
+            const previewContainer = document.getElementById('model-preview');
+            const modules = getModules();
+            let html = '<strong>Sintaks Aktif:</strong><ul class="list-decimal ml-5 mt-1">';
+            modules.forEach(m => {
+                html += `<li>${m.name}</li>`;
+            });
+            html += '</ul>';
+            previewContainer.innerHTML = html;
+        }
+
+        function saveLearningModel() {
+            const val = document.getElementById('setting-learning-model').value;
+            if (appSettings.learningModel !== val) {
+                appSettings.learningModel = val;
+                localStorage.setItem('cahaya_settings', JSON.stringify(appSettings));
+                
+                // Reset progres siswa agar tidak error saat model ditukar
+                state.completed = [];
+                state.xp = 0;
+                saveState();
+                
+                renderModelPreview();
+                showToast("Model Pembelajaran diperbarui! (Progres siswa direset menyesuaikan alur baru)", "success");
+            }
         }
 
         // ================= FITUR EKSPOR PDF =================
